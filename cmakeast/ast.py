@@ -54,6 +54,7 @@ ToplevelBody
 
 """
 
+import os
 import re
 
 from collections import namedtuple
@@ -400,7 +401,7 @@ def _handle_function_call(tokens, tokens_len, index):
         return (next_index, function_call)
 
 
-def _ast_worker(tokens, tokens_len, index, term):
+def _ast_worker(tokens, tokens_len, index, term, symtab = None) -> tuple:
     """The main collector for all AST functions.
 
     This function is called recursively to find both variable use and function
@@ -417,13 +418,30 @@ def _ast_worker(tokens, tokens_len, index, term):
                 break
 
         # Function call
+        token = tokens[index]
         if tokens[index].type == TokenType.Word and \
            index + 1 < tokens_len and \
            tokens[index + 1].type == TokenType.LeftParen:
-            index, statement = _handle_function_call(tokens,
-                                                     tokens_len,
-                                                     index)
-            statements.append(statement)
+            # JME
+            if tokens[index].content == "include":
+                index, statement = _handle_function_call(tokens,
+                                                        tokens_len,
+                                                        index)
+                statements.append(statement)
+                """
+                                    t0 = tokens[index+1]
+                        t1 = tokens[index+2]
+                        t2 = tokens[index+3]
+                        if t0.type == TokenType.LeftParen and t2.type == TokenType.RightParen:
+                            inc_name = t1.content
+                            print(f"#include: {inc_name}")
+                            ret_tokens += load_tokens(inc_name)
+                """
+            else:
+                index, statement = _handle_function_call(tokens,
+                                                        tokens_len,
+                                                        index)
+                statements.append(statement)
         # Argument
         elif _is_word_type(tokens[index].type):
             arguments.append(Word(type=_word_type(tokens[index].type),
@@ -879,7 +897,8 @@ def _compress_tokens(tokens):
 
     return tokens
 
-
+#------------------------------------------------------------------------------
+#
 def tokenize(contents):
     """Parse a string called contents for CMake tokens."""
     tokens = _scan_for_tokens(contents)
@@ -887,16 +906,70 @@ def tokenize(contents):
     tokens = [token for token in tokens if token.type != TokenType.Whitespace]
     return tokens
 
-
+#------------------------------------------------------------------------------
 def parse(contents, tokens=None):
     """Parse a string called contents for an AST and return it."""
     # Shortcut for users who are interested in tokens
+    # dictionary
+    symtab = {}
+
     if tokens is None:
         tokens = [t for t in tokenize(contents)]
 
-    token_index, body = _ast_worker(tokens, len(tokens), 0, None)
+    token_index, body = _ast_worker(tokens, len(tokens), 0, None, symtab)
 
     assert token_index == len(tokens)
     assert body.arguments == []
 
     return ToplevelBody(statements=body.statements)
+
+#------------------------------------------------------------------------------
+# potentially recursive
+def load_tokens(filename:str) -> list:
+    # return list with sub-lists in situ
+    ret_tokens = []
+    # blocker. cmake filenames can be macroized
+    # as in #include: ${SdkRootDirPath}/devices/MIMXRT1062/all_lib_device.cmake
+    if os.path.isfile(filename):
+        with open(filename) as ipfile:
+            index = 0
+            contents = ipfile.read()
+            # local list not modified
+            tokens = tokenize(contents)
+            for token in tokens:
+                if token.content == "include":
+                    # ( filename: )
+                    t0 = tokens[index+1]
+                    t1 = tokens[index+2]
+                    t2 = tokens[index+3]
+                    if t0.type == TokenType.LeftParen and t2.type == TokenType.RightParen:
+                        inc_name = t1.content
+                        print(f"#include: {inc_name}")
+                        ret_tokens += load_tokens(inc_name)
+                else:
+                    ret_tokens.append(token)
+                index+=1
+    # new list
+    return ret_tokens
+
+#------------------------------------------------------------------------------
+#  
+def parse_ex(filename, tokens=None):
+    """Parse a string called contents for an AST and return it."""
+    # Shortcut for users who are interested in tokens
+    if tokens is None:
+        #tokens = [t for t in tokenize(contents)]
+        tokens = load_tokens(filename)
+    # dictionary
+    symtab = {}
+    #
+    term = None
+    #
+    token_index, body = _ast_worker(tokens, len(tokens), 0, term, symtab)
+
+    #assert token_index == len(tokens)
+    #assert body.arguments == []
+
+    return ToplevelBody(statements=body.statements)
+
+
