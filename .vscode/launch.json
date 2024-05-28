@@ -10,8 +10,8 @@
             "request": "launch",
             "program": "printer.py",
             "console": "integratedTerminal",
-            // "args": ["R:\\dev\\1060-EVKB\\boards\\evkbmimxrt1060\\demo_apps\\shell\\armgcc\\CMakeLists.txt"]
-            "args": ["test.cmake"]
+            "args": ["R:\\dev\\1060-EVKB\\boards\\evkbmimxrt1060\\demo_apps\\shell\\armgcc\\CMakeLists.txt"]
+            // "args": ["test.cmake"]
         }
     ]
 }

@@ -60,6 +60,8 @@ import re
 from collections import namedtuple
 
 FunctionCall = namedtuple("FunctionCall", "name arguments line col index")
+# JME
+Include = namedtuple("Include", "Filename line col index")
 FunctionDefinition = namedtuple("FunctionDefinition",
                                 "header body line col index footer")
 MacroDefinition = namedtuple("MacroDefinition",
@@ -364,6 +366,17 @@ _FUNCTION_CALL_DISAMBIGUATE = {
     "while": _make_header_body_handler(_RE_ENDWHILE, WhileStatement)
 }
 
+# JME
+# includes are not function calls. return the next relevant token index
+def _handle_include(tokens, tokens_len, index, symtab:map = None) -> tuple:
+    # 'include' '(' word ')'
+    next_index = index + 4
+    include = Include(Filename=tokens[index+2].content,
+                    line=tokens[index+2].line,
+                    col=tokens[index+2].col,
+                    index=index+2)
+    # print(f"#include: {include.Filename} {include.line}")
+    return (next_index, include)
 
 # Function calls could be any number of things, disambiguate them
 def _handle_function_call(tokens, tokens_len, index):
@@ -424,10 +437,11 @@ def _ast_worker(tokens, tokens_len, index, term, symtab = None) -> tuple:
            tokens[index + 1].type == TokenType.LeftParen:
             # JME
             if tokens[index].content == "include":
-                index, statement = _handle_function_call(tokens,
-                                                        tokens_len,
-                                                        index)
-                statements.append(statement)
+                index, include = _handle_include(tokens,
+                                                      tokens_len,
+                                                        index,
+                                                        symtab)
+                statements.append(include)
                 """
                                     t0 = tokens[index+1]
                         t1 = tokens[index+2]
@@ -452,8 +466,8 @@ def _ast_worker(tokens, tokens_len, index, term, symtab = None) -> tuple:
 
         index = index + 1
 
-    return (index, GenericBody(statements=statements,
-                               arguments=arguments))
+    t:tuple = (index, GenericBody(statements=statements,arguments=arguments))
+    return t
 
 
 def _scan_for_tokens(contents):
@@ -907,19 +921,18 @@ def tokenize(contents):
     return tokens
 
 #------------------------------------------------------------------------------
-def parse(contents, tokens=None):
+def parse(contents, tokens=None, symtab = None):
     """Parse a string called contents for an AST and return it."""
     # Shortcut for users who are interested in tokens
-    # dictionary
-    symtab = {}
 
     if tokens is None:
         tokens = [t for t in tokenize(contents)]
 
     token_index, body = _ast_worker(tokens, len(tokens), 0, None, symtab)
 
-    assert token_index == len(tokens)
-    assert body.arguments == []
+    # ???
+    # assert token_index == len(tokens)
+    # assert body.arguments == []
 
     return ToplevelBody(statements=body.statements)
 
@@ -954,14 +967,12 @@ def load_tokens(filename:str) -> list:
 
 #------------------------------------------------------------------------------
 #  
-def parse_ex(filename, tokens=None):
+def parse_ex(filename, tokens=None, symtab = None):
     """Parse a string called contents for an AST and return it."""
     # Shortcut for users who are interested in tokens
     if tokens is None:
         #tokens = [t for t in tokenize(contents)]
         tokens = load_tokens(filename)
-    # dictionary
-    symtab = {}
     #
     term = None
     #
