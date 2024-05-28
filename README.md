@@ -4,14 +4,7 @@ CMake AST
 Status
 ------
 
-| Travis CI (Ubuntu) | AppVeyor (Windows) | Coverage | PyPI | Licence |
-|--------------------|--------------------|----------|------|---------|
-|[![Travis](https://img.shields.io/travis/polysquare/cmake-ast.svg)](http://travis-ci.org/polysquare/cmake-ast)|[![AppVeyor](https://img.shields.io/appveyor/ci/smspillaz/cmake-ast.svg)](https://ci.appveyor.com/project/smspillaz/cmake-ast)|[![Coveralls](https://img.shields.io/coveralls/polysquare/cmake-ast.svg)](http://coveralls.io/polysquare/cmake-ast)|[![PyPIVersion](https://img.shields.io/pypi/v/cmake-ast.svg)](https://pypi.python.org/pypi/cmake-ast)[![PyPIPythons](https://img.shields.io/pypi/pyversions/cmake-ast.svg)](https://pypi.python.org/pypi/cmake-ast)|[![License](https://img.shields.io/github/license/polysquare/cmake-ast.svg)](http://github.com/polysquare/cmake-ast)|
-
-`cmake-ast` has been tested against every single CMake module that ships with
-recent versions of CMake. These tests also run in the continuous integration
-environment on each build. It supports multi-line strings and other corner
-cases.
+This fork is WIP. Be advised!
 
 Usage
 -----
